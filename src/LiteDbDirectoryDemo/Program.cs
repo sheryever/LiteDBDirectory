@@ -19,7 +19,7 @@ namespace SQLiteDirectoryDemo
     class Program
     {
         private static string connectionString =
-           $"Filename={Path.Combine(Environment.CurrentDirectory, "index.ldib")};";
+           $"Filename={Path.Combine(Environment.CurrentDirectory, "index.ldib")}";
         static void Main(string[] args)
         {
             using (var db = new LiteDatabase(connectionString))
@@ -75,7 +75,7 @@ namespace SQLiteDirectoryDemo
                 
                 var directory = new LiteDbDirectory(db);
 
-                for (int outer = 0; outer < 20; outer++)
+                for (int outer = 0; outer < 102; outer++)
                 {
 
 
@@ -94,17 +94,16 @@ namespace SQLiteDirectoryDemo
                             Thread.Sleep(1000);
                         }
                     }
-                ;
+
                     Console.WriteLine("IndexWriter lock obtained, this process has exclusive write access to index");
-                    indexWriter.SetRAMBufferSizeMB(100.0);
-                    indexWriter.SetInfoStream(new StreamWriter(Console.OpenStandardOutput()));
-                    indexWriter.UseCompoundFile = false;
-                    GC.Collect();
+                    indexWriter.SetRAMBufferSizeMB(500);
+                    //indexWriter.SetInfoStream(new StreamWriter(Console.OpenStandardOutput()));
+                    //indexWriter.UseCompoundFile = false;
 
                     for (int iDoc = 0; iDoc < 1000; iDoc++)
                     {
-                        if (iDoc % 10 == 0)
-                            Console.WriteLine(iDoc);
+                        //if (iDoc % 10 == 0)
+                           // Console.WriteLine(iDoc);
                         Document doc = new Document();
                         doc.Add(new Field("id", DateTime.Now.ToFileTimeUtc().ToString(), Field.Store.YES,
                             Field.Index.ANALYZED, Field.TermVector.NO));
@@ -113,14 +112,18 @@ namespace SQLiteDirectoryDemo
                         doc.Add(new Field("Body", "dog " + GeneratePhrase(50), Field.Store.NO, Field.Index.ANALYZED,
                             Field.TermVector.NO));
                         indexWriter.AddDocument(doc);
-                        GC.Collect();
+                        //GC.Collect();
                     }
 
                     Console.WriteLine("Total docs is {0}", indexWriter.NumDocs());
 
-                    Console.Write("Flushing and disposing writer...");
+                    Console.WriteLine("Flushing and disposing writer...");
                     indexWriter.Flush(true, true, true);
+                    //indexWriter.Dispose();
+                    indexWriter.Commit();
                     indexWriter.Dispose();
+                    GC.Collect();
+
                 }
 
                 IndexSearcher searcher;

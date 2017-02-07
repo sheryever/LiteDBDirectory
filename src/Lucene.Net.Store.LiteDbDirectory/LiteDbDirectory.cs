@@ -139,5 +139,7 @@ namespace Lucene.Net.Store.LiteDbDirectory
         {
             _db.Dispose();
         }
+
+
     }
 }
