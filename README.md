@@ -12,6 +12,8 @@ Install-Package LuceneLiteDbDirectory
 ## Using LiteDbDirectory
 Initializing LiteDbDirectory
 ```
+string connectionString = $"Filename={Path.Combine(Environment.CurrentDirectory, "MyIndex.Db")};password=somepassword;";
+
 using (var db = new LiteDatabase(connectionString))
 {
     LiteDbDirectory liteDbDirectory = new LiteDbDirectory(db);
