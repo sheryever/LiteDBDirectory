@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,7 @@ using LiteDB;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
+using Lucene.Net.QueryParsers;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Store.LiteDbDirectory;
@@ -23,9 +25,18 @@ namespace SQLiteDirectoryDemo
            $"Filename={Path.Combine(Environment.CurrentDirectory, "index.ldib")}";
         static void Main(string[] args)
         {
+
             using (var db = new LiteDatabase(connectionString))
             {
-                //LiteDbDirectory.ProvisionDatabase(db, dropExisting: true);
+                LiteDbDirectory liteDbDirectory = new LiteDbDirectory(db);
+                try
+                {
+                    liteDbDirectory.CheckRequiredCollection();
+                }
+                catch (ConfigurationErrorsException e)
+                {
+                    LiteDbDirectory.CreateRequiredCollections(db, dropExisting: true);
+                }
             }
             Do();
             //var t1 = Task.Factory.StartNew(Do);
@@ -42,12 +53,9 @@ namespace SQLiteDirectoryDemo
 
                 StandardAnalyzer analyzer = new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30);
 
-                //var directorInfo = new DirectoryInfo(Environment.CurrentDirectory + "\\indexes" );
-                //var directory = new SimpleFSDirectory(directorInfo);
-
                 var directory = new LiteDbDirectory(db);
 
-                new IndexWriter(directory, new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30),
+                new IndexWriter(directory, analyzer,
                         !IndexReader.IndexExists(directory),
                             new Lucene.Net.Index.IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
 
@@ -56,7 +64,7 @@ namespace SQLiteDirectoryDemo
                 {
                     try
                     {
-                        indexWriter = new IndexWriter(directory, new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30),
+                        indexWriter = new IndexWriter(directory, analyzer,
                             !IndexReader.IndexExists(directory),
                             new Lucene.Net.Index.IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
                     }
@@ -109,7 +117,7 @@ namespace SQLiteDirectoryDemo
                     {
                         indexWriter = new IndexWriter(directory, new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30),
                             !IndexReader.IndexExists(directory),
-                            new Lucene.Net.Index.IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
+                            new IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
                     }
                     catch (LockObtainFailedException)
                     {
@@ -154,13 +162,19 @@ namespace SQLiteDirectoryDemo
         {
             using (new AutoStopWatch($"Search for {phrase}"))
             {
-                Lucene.Net.QueryParsers.QueryParser parser = new Lucene.Net.QueryParsers.QueryParser(Lucene.Net.Util.Version.LUCENE_30, "Body", new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30));
+                Lucene.Net.QueryParsers.QueryParser parser = new QueryParser(Lucene.Net.Util.Version.LUCENE_30, "Body", new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30));
                 Lucene.Net.Search.Query query = parser.Parse(phrase);
-
+                searcher.Search(query, 10);
                 var hits = searcher.Search(new TermQuery(new Term("Title", "find me")), 100);
 
                 hits = searcher.Search(query, 100);
                 Console.WriteLine("Found {0} results for {1}", hits.TotalHits, phrase);
+
+                foreach (var hitsScoreDoc in hits.ScoreDocs)
+                {
+                    var doc = searcher.IndexReader[hitsScoreDoc.Doc];
+                    Console.WriteLine("Book title: {0}", doc.GetValues("book-title")[0]);
+                }
             }
         }
 

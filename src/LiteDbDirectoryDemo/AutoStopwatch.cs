@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Lucene.Net.Store.LiteDbDirectory.Helpers
+namespace SQLiteDirectoryDemo
 {
+    /// <summary>
+    /// <see cref="Stopwatch"/> helper class to show the start and stop time on Console
+    /// </summary>
     public class AutoStopWatch : IDisposable
     {
         private readonly Stopwatch _stopwatch;

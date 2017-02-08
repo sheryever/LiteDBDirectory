@@ -57,7 +57,7 @@ namespace Lucene.Net.Store.LiteDbDirectory
 
         public override long Length()
         {
-            return FileHelper.Length(_db, _name); ;
+            return FileHelper.GetContentFileDataLength(_db, _name); ;
         }
 
         public override long FilePointer => _position;

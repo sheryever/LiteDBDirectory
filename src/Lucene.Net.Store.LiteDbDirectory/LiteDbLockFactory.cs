@@ -13,7 +13,7 @@ namespace Lucene.Net.Store.LiteDbDirectory
         internal LiteDbLockFactory(LiteDatabase db)
         {
             _db = db;
-            _fileLocks = db.GetCollection<IndexFileLock>(LiteDbDatabase.FileLocks);
+            _fileLocks = db.GetCollection<IndexFileLock>(LiteDbCollectionsInfo.FileLocks);
         }
 
         public override Lock MakeLock(string lockName)

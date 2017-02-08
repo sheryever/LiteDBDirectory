@@ -7,7 +7,7 @@ using Lucene.Net.Store.LiteDbDirectory.Helpers;
 
 namespace Lucene.Net.Store.LiteDbDirectory
 {
-    class LiteDbIndexOutput : BufferedIndexOutput
+    internal class LiteDbIndexOutput : BufferedIndexOutput
     {
         private readonly LiteDatabase _db;
         private readonly string _name;
@@ -28,18 +28,18 @@ namespace Lucene.Net.Store.LiteDbDirectory
             {
                 using (MemoryStream memoryStream = new MemoryStream())
                 {
-                    //Console.WriteLine($"{fsinfo.Id} already exist with lenth of {fsinfo.Length}");
+                    //Console.WriteLine($"{fsinfo.Id} already exist with lenth of {fsinfo.GetContentFileDataLength}");
                     fsinfo.CopyTo(memoryStream);
-                    //memoryStream.Position = memoryStream.Length;
+                    //memoryStream.Position = memoryStream.GetContentFileDataLength;
                     memoryStream.Position = FilePointer - len;
-                    //Console.WriteLine($"MemorySteam lenth: {memoryStream.Length} before writing");
+                    //Console.WriteLine($"MemorySteam lenth: {memoryStream.GetContentFileDataLength} before writing");
                     memoryStream.Write(segment, 0, len);
                     //memoryStream.Flush();
                     //_db.FileStorage.Delete(_name);
-                    //Console.WriteLine($"MemorySteam lenth: {memoryStream.Length} after writing and flush");
+                    //Console.WriteLine($"MemorySteam lenth: {memoryStream.GetContentFileDataLength} after writing and flush");
                     memoryStream.Position = 0;
                     fsinfo = _db.FileStorage.Upload(_name, _name, memoryStream);
-                    //Console.WriteLine($"{_name} lenth {fsinfo.Length} after flush");
+                    //Console.WriteLine($"{_name} lenth {fsinfo.GetContentFileDataLength} after flush");
                 }
             }
             else
@@ -49,22 +49,12 @@ namespace Lucene.Net.Store.LiteDbDirectory
                     //Console.WriteLine($"Opened a new file:{_name} to write.");
                     fileStream.Write(segment, 0, len);
                     fileStream.Flush();
-                    //Console.WriteLine($"{_name} lenth {fileStream.Length} after flush");
+                    //Console.WriteLine($"{_name} lenth {fileStream.GetContentFileDataLength} after flush");
                 }
             }
             GC.Collect();
         }
-
-        
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            //Flush();
-            //if (disposing)
-            //    _writer.Dispose();
-        }
-        
-        public override long Length => FileHelper.Length(_db, _name);
+      
+        public override long Length => FileHelper.GetContentFileDataLength(_db, _name);
     }
 }

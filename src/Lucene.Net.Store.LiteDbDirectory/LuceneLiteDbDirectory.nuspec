@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+    <metadata>
+        <id>LuceneLiteDbDirectory</id>
+        <version>0.5.0.0</version>
+        <title>Lucene.net LiteDbDirectory</title>
+        <authors>Abu Ali Muhammad Sharjeel</authors>
+        <owners>Abu Ali Muhammad Sharjeel</owners>
+        <projectUrl>https://github.com/sheryever/LiteDBDirectory</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>A Lucene.net Directory to store the Lucene.net index files in LiteDB database to secure the indexed data with LiteDb password.</description>
+        <copyright>Abu Ali Muhammad Sharjeel</copyright>
+        <tags>Lucene, LuceneNET, Lucene.NET, LiteDb Directory, LiteDbDirectory</tags>
+        <dependencies>
+            <dependency id="LiteDB" version="3.0.0" />
+            <dependency id="Lucene.Net" version="3.0.3" />
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="bin\Release\Lucene.Net.Store.LiteDbDirectory.dll" target="lib\net40\Lucene.Net.Store.LiteDbDirectory.dll" />
+    </files>
+</package>
