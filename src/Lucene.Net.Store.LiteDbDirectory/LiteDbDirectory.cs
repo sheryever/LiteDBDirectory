@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
@@ -103,18 +104,48 @@ namespace Lucene.Net.Store.LiteDbDirectory
 
         public override void DeleteFile(string name)
         {
-            _fileMetaDataCollection.Delete(fm => fm.Name == name);
-            _fileContenteCollection.Delete(fc => fc.Name == name);
+            LiteDbIndexOutput runningOutput;
+            if (_runningOutputs.TryRemove(name, out runningOutput))
+            {
+                runningOutput.Dispose();
+            }
+            LiteDbIndexInput runningInput;
+            if (_runningInputs.TryRemove(name, out runningInput))
+            {
+                runningInput.Dispose();
+            }
+
+
+            var metaData = _fileMetaDataCollection.FindOne(fm => fm.Name == name);
+            metaData.IsDeleted = true;
+            metaData.Name = Guid.NewGuid().ToString();
+            _fileMetaDataCollection.Update(metaData);
+
+            var contentFile =  _fileContenteCollection.FindOne(fc => fc.Name == name);
+            contentFile.IsDeleted = true;
+            contentFile.Name = Guid.NewGuid().ToString();
+            _fileContenteCollection.Update(contentFile);
 
         }
 
+        private readonly ConcurrentDictionary<string, LiteDbIndexInput> _runningInputs = new ConcurrentDictionary<string, LiteDbIndexInput>();
+        private readonly ConcurrentDictionary<string, LiteDbIndexOutput> _runningOutputs = new ConcurrentDictionary<string, LiteDbIndexOutput>();
+
+
         public override long FileLength(string name)
         {
-            return LiteDbStreamingReader.Length(_db, name);
+            return FileHelper.Length(_db, name);
         }
 
         public override IndexOutput CreateOutput(string name)
         {
+            LiteDbIndexOutput runningOutput;
+            if (_runningOutputs.TryRemove(name, out runningOutput))
+            {
+                runningOutput.Dispose();
+            }
+
+
             if (0 == _fileContenteCollection.Count(fc => fc.Name == name))
             {
                 var fileContent = new FileContent {Name = name};
@@ -127,16 +158,30 @@ namespace Lucene.Net.Store.LiteDbDirectory
             }
             GC.Collect();
 
-            return new LiteDbIndexOutput(_db, name);
+            var result = new LiteDbIndexOutput(_db, name);
+            _runningOutputs.TryAdd(name, result);
+
+            return result;
+
         }
 
         public override IndexInput OpenInput(string name)
         {
-            return new LiteDbIndexInput(_db, name);
+            LiteDbIndexInput runningInput;
+            if (_runningInputs.TryRemove(name, out runningInput))
+            {
+                runningInput.Dispose();
+            }
+
+            var result = new LiteDbIndexInput(_db, name);
+            _runningInputs.TryAdd(name, result);
+            return result;
         }
 
         protected override void Dispose(bool disposing)
         {
+            _runningInputs.Values.ForEach(z => z.Dispose());
+            _runningOutputs.Values.ForEach(z => z.Dispose());
             _db.Dispose();
         }
 

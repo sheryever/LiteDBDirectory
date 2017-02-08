@@ -1,57 +1,71 @@
+using System;
 using System.Data;
+using System.IO;
 using LiteDB;
 using Lucene.Net.Store;
 using Lucene.Net.Store.LiteDbDirectory.Helpers;
 
 namespace Lucene.Net.Store.LiteDbDirectory
 {
-    internal class LiteDbIndexInput : IndexInput
+    internal class LiteDbIndexInput : BufferedIndexInput
     {
         private readonly LiteDatabase _db;
         private readonly string _name;
         private long _position;
 
-        private LiteDbStreamingReader _dataReader;
 
         internal LiteDbIndexInput(LiteDatabase db, string name)
         {
             _db = db;
             _name = name;
-            _dataReader = new LiteDbStreamingReader(db, name);
         }
 
-        public override byte ReadByte()
-        {
-            var buffer = new byte[1];
-            ReadBytes(buffer, 0, 1);
-            return buffer[0];
-        }
-
-        public override void ReadBytes(byte[] b, int offset, int len)
+        public override void ReadInternal(byte[] b, int offset, int length)
         {
             if (b.Length == 0)
                 return;
 
-            _dataReader.ReadBytes(_position, b, offset, len);
+            LiteFileInfo fileInfo = _db.FileStorage.FindById(_name);
 
-            _position += len;
+
+            if (offset < _position)
+            {
+                fileInfo = _db.FileStorage.FindById(_name);
+            }
+            if (fileInfo == null)
+            {
+                return;
+            }
+            if (fileInfo.Length > 0)
+            {
+                using (var stream = new MemoryStream())
+                {
+                    fileInfo.CopyTo(stream);
+                    stream.Position = _position;
+                    stream.Read(b, offset, length);
+                }
+                GC.Collect();
+            }
+            _position += length;
         }
-
+        
         protected override void Dispose(bool disposing)
         {
             
         }
 
-        public override void Seek(long pos)
-        {
-            _position = pos;
-        }
 
         public override long Length()
         {
-            return LiteDbStreamingReader.Length(_db, _name); ;
+            return FileHelper.Length(_db, _name); ;
         }
 
         public override long FilePointer => _position;
+
+
+        public override void SeekInternal(long pos)
+        {
+            _position = pos;
+        }
     }
 }

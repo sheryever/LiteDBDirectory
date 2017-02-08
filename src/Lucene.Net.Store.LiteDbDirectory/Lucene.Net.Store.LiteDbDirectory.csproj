@@ -60,14 +60,12 @@
     <Compile Include="Entities\FileContent.cs" />
     <Compile Include="Entities\FileMetaData.cs" />
     <Compile Include="Entities\IndexFileLock.cs" />
+    <Compile Include="Helpers\AutoStopwatch.cs" />
+    <Compile Include="Helpers\FileHelper.cs" />
     <Compile Include="LiteDbDatabase.cs" />
-    <Compile Include="Helpers\ByteHelper.cs" />
-    <Compile Include="Helpers\ByteWriter.cs" />
     <Compile Include="Helpers\HigherOrderFunctions.cs" />
     <Compile Include="Helpers\Segment.cs" />
     <Compile Include="Helpers\LiteDatabaseHelper.cs" />
-    <Compile Include="Helpers\LiteDbStreamingReader.cs" />
-    <Compile Include="Helpers\LiteDbStreamingWriter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="LiteDbDirectory.cs" />
     <Compile Include="LiteDbIndexInput.cs" />
