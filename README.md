@@ -11,7 +11,7 @@ Install-Package LuceneLiteDbDirectory
 
 ## Using LiteDbDirectory
 Initializing LiteDbDirectory
-```
+```C#
 string connectionString = $"Filename={Path.Combine(Environment.CurrentDirectory, "MyIndex.Db")};password=somepassword;";
 
 using (var db = new LiteDatabase(connectionString))
@@ -28,7 +28,7 @@ using (var db = new LiteDatabase(connectionString))
 }
 ```
 Using LiteDbDirectory for indexing data  
-```
+```c#
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
@@ -59,7 +59,7 @@ using (var db = new LiteDatabase(connectionString))
 }
 ```
 Using LiteDbDirectory for Searching data 
-```
+```c#
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
