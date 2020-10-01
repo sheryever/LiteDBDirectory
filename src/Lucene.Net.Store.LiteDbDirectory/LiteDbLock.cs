@@ -7,13 +7,19 @@ namespace Lucene.Net.Store.LiteDbDirectory
 {
     internal class LiteDbLock : Lock
     {
-        private readonly LiteCollection<IndexFileLock> _fileLocks;
+        private readonly ILiteCollection<IndexFileLock> _fileLocks;
         private readonly string _lockName;
 
-        public LiteDbLock(LiteCollection<IndexFileLock> fileLocks, string lockName)
+        public LiteDbLock(ILiteCollection<IndexFileLock> fileLocks, string lockName)
         {
-            _fileLocks = fileLocks; 
+            _fileLocks = fileLocks;
             _lockName = lockName;
+        }
+
+        public override bool IsLocked()
+        {
+            var locks = _fileLocks.FindAll();
+            return _fileLocks.Count(fl => fl.Name == _lockName && fl.LockReleaseTimestamp > DateTime.UtcNow) != 0;
         }
 
         public override bool Obtain()
@@ -36,18 +42,12 @@ namespace Lucene.Net.Store.LiteDbDirectory
 
         private void ReleaseLocksByReleaseTimestamp()
         {
-            _fileLocks.Delete(fl => fl.LockReleaseTimestamp < DateTime.UtcNow);
+            _fileLocks.DeleteMany(fl => fl.LockReleaseTimestamp < DateTime.UtcNow);
         }
 
-        public override void Release()
+        protected override void Dispose(bool disposing)
         {
-            _fileLocks.Delete(fl => fl.Name == _lockName);
-            ReleaseLocksByReleaseTimestamp();
-        }
-
-        public override bool IsLocked()
-        {
-            return _fileLocks.Count(fl => fl.Name == _lockName && fl.LockReleaseTimestamp > DateTime.UtcNow) != 0;
+            _fileLocks.DeleteMany(fl => fl.Name == _lockName);
         }
     }
 }

@@ -36,24 +36,23 @@ using Lucene.Net.Store.LiteDbDirectory;
 /* Indexing code */
 using (var db = new LiteDatabase(connectionString))
 {
-	var indexWriter = new IndexWriter(directory, new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30),
-		!IndexReader.IndexExists(directory),
-		new IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
-
-	indexWriter.SetRAMBufferSizeMB(500);
+	var analyzer = new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48);
+	var config = new IndexWriterConfig(Lucene.Net.Util.LuceneVersion.LUCENE_48, analyzer);
+ 	indexWriter = new IndexWriter(directory, config);
 
 	var bookPages = _libraryService.GetAllBookPages();  // You service layer to load data
 
 	foreach(var page in bookPages)
 	{
 		var bookPageDoc = new Document();
-		doc.Add(new Field("id", page.Id, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.NO));
-		doc.Add(new Field("book-title", page.Title, Field.Store.NO, Field.Index.ANALYZED, Field.TermVector.NO));
-		doc.Add(new Field("book-page", page.Text, Field.Store.NO, Field.Index.ANALYZED, Field.TermVector.NO));
+
+                doc.Add(new StringField("id", page.Id, Field.Store.YES));
+                doc.Add(new TextField("book-title", page.Title, Field.Store.YES));
+                doc.Add(new TextField("book-page", page.Text, Field.Store.NO));
 			
 		indexWriter.AddDocument(bookPageDoc);
 	}
-	indexWriter.Flush(true, true, true);
+	indexWriter.Flush(true, true);
 	indexWriter.Commit();
 	indexWriter.Dispose();
 }
@@ -70,14 +69,14 @@ using (var db = new LiteDatabase(connectionString))
 	LiteDbDirectory liteDbDirectory = new LiteDbDirectory(db);
     
 	IndexSearcher searcher = new IndexSearcher(liteDbDirectory);
-	var parser = new QueryParser(Lucene.Net.Util.Version.LUCENE_30, "book-page", new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30));
+	var parser = new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, "book-page", new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48));
 	var query = parser.Parse("text to search");
 	hits = searcher.Search(query, 100);
 
 	Console.WriteLine("Found {0} results for {1}", hits.TotalHits, phrase);
 	foreach (var hitsScoreDoc in hits.ScoreDocs)
 	{
-	  var doc = searcher.IndexReader[hitsScoreDoc.Doc];
+	   var doc = searcher.IndexReader.Document(hitsScoreDoc.Doc);
 	  Console.WriteLine("Book id: {0}", doc.GetValues("id")[0]);
 	}
 }

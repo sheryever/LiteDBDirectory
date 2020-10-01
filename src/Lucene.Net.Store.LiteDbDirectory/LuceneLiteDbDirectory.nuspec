@@ -12,11 +12,11 @@
         <copyright>Abu Ali Muhammad Sharjeel</copyright>
         <tags>Lucene, LuceneNET, Lucene.NET, LiteDb Directory, LiteDbDirectory</tags>
         <dependencies>
-            <dependency id="LiteDB" version="3.0.0" />
-            <dependency id="Lucene.Net" version="3.0.3" />
+            <dependency id="LiteDB" version="5.0.9" />
+            <dependency id="Lucene.Net" version="4.8.0-beta00012" />
         </dependencies>
     </metadata>
     <files>
-        <file src="bin\Release\Lucene.Net.Store.LiteDbDirectory.dll" target="lib\net40\Lucene.Net.Store.LiteDbDirectory.dll" />
+        <file src="bin\Release\Lucene.Net.Store.LiteDbDirectory.dll" target="lib\netstandard2.0\Lucene.Net.Store.LiteDbDirectory.dll" />
     </files>
 </package>
