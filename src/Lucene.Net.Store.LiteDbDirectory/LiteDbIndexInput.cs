@@ -14,19 +14,24 @@ namespace Lucene.Net.Store.LiteDbDirectory
         private long _position;
 
 
-        internal LiteDbIndexInput(LiteDatabase db, string name)
+        internal LiteDbIndexInput(LiteDatabase db, string name) : base(name, 1024)
         {
             _db = db;
             _name = name;
         }
 
-        public override void ReadInternal(byte[] b, int offset, int length)
+        public override long Length => FileHelper.GetContentFileDataLength(_db, _name);
+
+        protected override void Dispose(bool disposing)
+        {
+        }
+
+        protected override void ReadInternal(byte[] b, int offset, int length)
         {
             if (b.Length == 0)
                 return;
 
-            LiteFileInfo fileInfo = _db.FileStorage.FindById(_name);
-
+            var fileInfo = _db.FileStorage.FindById(_name);
 
             if (offset < _position)
             {
@@ -48,22 +53,8 @@ namespace Lucene.Net.Store.LiteDbDirectory
             }
             _position += length;
         }
-        
-        protected override void Dispose(bool disposing)
-        {
-            
-        }
 
-
-        public override long Length()
-        {
-            return FileHelper.GetContentFileDataLength(_db, _name); ;
-        }
-
-        public override long FilePointer => _position;
-
-
-        public override void SeekInternal(long pos)
+        protected override void SeekInternal(long pos)
         {
             _position = pos;
         }

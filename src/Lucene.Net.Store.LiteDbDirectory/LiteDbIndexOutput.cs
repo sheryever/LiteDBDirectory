@@ -18,7 +18,9 @@ namespace Lucene.Net.Store.LiteDbDirectory
             _name = name;
         }
 
-        public override void FlushBuffer(byte[] b, int offset, int len)
+        public override long Length => FileHelper.GetContentFileDataLength(_db, _name);
+
+        protected override void FlushBuffer(byte[] b, int offset, int len)
         {
             var segment = new byte[len];
             Buffer.BlockCopy(b, offset, segment, 0, len);
@@ -31,7 +33,7 @@ namespace Lucene.Net.Store.LiteDbDirectory
                     //Console.WriteLine($"{fsinfo.Id} already exist with lenth of {fsinfo.GetContentFileDataLength}");
                     fsinfo.CopyTo(memoryStream);
                     //memoryStream.Position = memoryStream.GetContentFileDataLength;
-                    memoryStream.Position = FilePointer - len;
+                    memoryStream.Position = this.GetFilePointer() - len;
                     //Console.WriteLine($"MemorySteam lenth: {memoryStream.GetContentFileDataLength} before writing");
                     memoryStream.Write(segment, 0, len);
                     //memoryStream.Flush();
@@ -44,7 +46,7 @@ namespace Lucene.Net.Store.LiteDbDirectory
             }
             else
             {
-                using (LiteFileStream fileStream = _db.FileStorage.OpenWrite(_name, _name))
+                using (var fileStream = _db.FileStorage.OpenWrite(_name, _name))
                 {
                     //Console.WriteLine($"Opened a new file:{_name} to write.");
                     fileStream.Write(segment, 0, len);
@@ -54,7 +56,5 @@ namespace Lucene.Net.Store.LiteDbDirectory
             }
             GC.Collect();
         }
-      
-        public override long Length => FileHelper.GetContentFileDataLength(_db, _name);
     }
 }

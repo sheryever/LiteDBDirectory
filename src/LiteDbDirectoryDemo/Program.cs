@@ -12,6 +12,7 @@ using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.QueryParsers;
+using Lucene.Net.QueryParsers.Classic;
 using Lucene.Net.Search;
 using Lucene.Net.Store;
 using Lucene.Net.Store.LiteDbDirectory;
@@ -23,27 +24,16 @@ namespace SQLiteDirectoryDemo
     {
         private static string connectionString =
            $"Filename={Path.Combine(Environment.CurrentDirectory, "index.ldib")}";
+
         static void Main(string[] args)
         {
 
             using (var db = new LiteDatabase(connectionString))
             {
                 LiteDbDirectory liteDbDirectory = new LiteDbDirectory(db);
-                try
-                {
-                    liteDbDirectory.CheckRequiredCollection();
-                }
-                catch (ConfigurationErrorsException e)
-                {
-                    LiteDbDirectory.CreateRequiredCollections(db, dropExisting: true);
-                }
             }
+
             Do();
-            //var t1 = Task.Factory.StartNew(Do);
-            //var t2 = Task.Factory.StartNew(Do);
-            //var t3 = Task.Factory.StartNew(Do);
-            //t1.Wait();
-            //Task.WaitAll(t1, t2, t3);
         }
 
         static void LockCanBeReleased()
@@ -51,22 +41,17 @@ namespace SQLiteDirectoryDemo
             using (var db = new LiteDatabase(connectionString))
             {
 
-                StandardAnalyzer analyzer = new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30);
+                StandardAnalyzer analyzer = new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48);
 
                 var directory = new LiteDbDirectory(db);
-
-                new IndexWriter(directory, analyzer,
-                        !IndexReader.IndexExists(directory),
-                            new Lucene.Net.Index.IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
+                var config = new IndexWriterConfig(Lucene.Net.Util.LuceneVersion.LUCENE_48, analyzer);
 
                 IndexWriter indexWriter = null;
                 while (indexWriter == null)
                 {
                     try
                     {
-                        indexWriter = new IndexWriter(directory, analyzer,
-                            !IndexReader.IndexExists(directory),
-                            new Lucene.Net.Index.IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
+                        indexWriter = new IndexWriter(directory, config);
                     }
                     catch (LockObtainFailedException)
                     {
@@ -79,7 +64,6 @@ namespace SQLiteDirectoryDemo
 
         static void Do()
         {
-            //var directory = new SimpleFSDirectory(new DirectoryInfo(@"c:\temp\lucene"));
             using (var db = new LiteDatabase(connectionString))
             {
                 
@@ -88,13 +72,14 @@ namespace SQLiteDirectoryDemo
                 IndexTempData(directory);
 
                 IndexSearcher searcher;
+                var reader = DirectoryReader.Open(directory);
 
                 using (new AutoStopWatch("Creating searcher"))
                 {
-                    searcher = new IndexSearcher(directory);
+                    searcher = new IndexSearcher(reader);
                 }
                 using (new AutoStopWatch("Count"))
-                    Console.WriteLine("Number of docs: {0}", searcher.IndexReader.NumDocs());
+                    Console.WriteLine("Number of docs: {0}", searcher.IndexReader.NumDocs);
 
                 while (true)
                 {
@@ -108,16 +93,16 @@ namespace SQLiteDirectoryDemo
 
         private static void IndexTempData(LiteDbDirectory directory)
         {
-            for (int outer = 0; outer < 102; outer++)
+            for (int outer = 0; outer < 5; outer++)
             {
                 IndexWriter indexWriter = null;
                 while (indexWriter == null)
                 {
                     try
                     {
-                        indexWriter = new IndexWriter(directory, new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30),
-                            !IndexReader.IndexExists(directory),
-                            new IndexWriter.MaxFieldLength(IndexWriter.DEFAULT_MAX_FIELD_LENGTH));
+                        var analyzer = new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48);
+                        var config = new IndexWriterConfig(Lucene.Net.Util.LuceneVersion.LUCENE_48, analyzer);
+                        indexWriter = new IndexWriter(directory, config);
                     }
                     catch (LockObtainFailedException)
                     {
@@ -127,7 +112,7 @@ namespace SQLiteDirectoryDemo
                 }
 
                 Console.WriteLine("IndexWriter lock obtained, this process has exclusive write access to index");
-                indexWriter.SetRAMBufferSizeMB(500);
+
                 //indexWriter.SetInfoStream(new StreamWriter(Console.OpenStandardOutput()));
                 //indexWriter.UseCompoundFile = false;
 
@@ -136,20 +121,17 @@ namespace SQLiteDirectoryDemo
                     //if (iDoc % 10 == 0)
                     // Console.WriteLine(iDoc);
                     Document doc = new Document();
-                    doc.Add(new Field("id", DateTime.Now.ToFileTimeUtc().ToString(), Field.Store.YES,
-                        Field.Index.ANALYZED, Field.TermVector.NO));
-                    doc.Add(new Field("Title", "dog " + GeneratePhrase(50), Field.Store.NO, Field.Index.ANALYZED,
-                        Field.TermVector.NO));
-                    doc.Add(new Field("Body", "dog " + GeneratePhrase(50), Field.Store.NO, Field.Index.ANALYZED,
-                        Field.TermVector.NO));
+                    doc.Add(new StringField("id", DateTime.Now.ToFileTimeUtc().ToString(), Field.Store.YES));
+                    doc.Add(new TextField("Title", "dog " + GeneratePhrase(50), Field.Store.YES));
+                    doc.Add(new TextField("Body", "dog " + GeneratePhrase(50), Field.Store.NO));
                     indexWriter.AddDocument(doc);
                     //GC.Collect();
                 }
 
-                Console.WriteLine("Total docs is {0}", indexWriter.NumDocs());
+                Console.WriteLine("Total docs is {0}", indexWriter.NumDocs);
 
                 Console.WriteLine("Flushing and disposing writer...");
-                indexWriter.Flush(true, true, true);
+                indexWriter.Flush(true, true);
                 //indexWriter.Dispose();
                 indexWriter.Commit();
                 indexWriter.Dispose();
@@ -162,7 +144,7 @@ namespace SQLiteDirectoryDemo
         {
             using (new AutoStopWatch($"Search for {phrase}"))
             {
-                Lucene.Net.QueryParsers.QueryParser parser = new QueryParser(Lucene.Net.Util.Version.LUCENE_30, "Body", new StandardAnalyzer(Lucene.Net.Util.Version.LUCENE_30));
+                var parser = new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, "Body", new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48));
                 Lucene.Net.Search.Query query = parser.Parse(phrase);
                 searcher.Search(query, 10);
                 var hits = searcher.Search(new TermQuery(new Term("Title", "find me")), 100);
@@ -172,8 +154,8 @@ namespace SQLiteDirectoryDemo
 
                 foreach (var hitsScoreDoc in hits.ScoreDocs)
                 {
-                    var doc = searcher.IndexReader[hitsScoreDoc.Doc];
-                    Console.WriteLine("Book title: {0}", doc.GetValues("book-title")[0]);
+                    var doc = searcher.IndexReader.Document(hitsScoreDoc.Doc);
+                    Console.WriteLine("Book title: {0}", doc.GetValues("Title")[0]);
                 }
             }
         }

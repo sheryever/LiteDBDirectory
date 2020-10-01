@@ -7,8 +7,7 @@ namespace Lucene.Net.Store.LiteDbDirectory
     internal class LiteDbLockFactory : LockFactory
     {
         private readonly LiteDatabase _db;
-        private readonly LiteCollection<IndexFileLock> _fileLocks;
-
+        private readonly ILiteCollection<IndexFileLock> _fileLocks;
 
         internal LiteDbLockFactory(LiteDatabase db)
         {
@@ -23,7 +22,7 @@ namespace Lucene.Net.Store.LiteDbDirectory
 
         public override void ClearLock(string lockName)
         {
-            _fileLocks.Delete(fl => fl.Name == lockName);
+            _fileLocks.DeleteMany(fl => fl.Name == lockName);
         }
     }
 }
